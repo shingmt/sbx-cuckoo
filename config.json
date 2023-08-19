@@ -1,0 +1,18 @@
+{
+    "kafka_bootstrap_servers": ["172.17.0.1:9092"],
+    "module_code": "sbx-cuckoo",
+    "module_otype": "file",
+    "module_indir": "/data/modules/sbx-cuckoo/input",
+    "module_outdir": "/data/modules/sbx-cuckoo/output",
+    "module_input_format": "filepath",
+    "module_output_format": ["folderpath","filepath", "datastring"],
+    "publishing": {
+        "publish_file": true,
+        "chunk_size": 24570,
+        "after_publish": "delete"
+    },
+
+    "cuckoo_API": "http://172.17.0.1:1337",
+    "cuckoo_SECRET_KEY": "Bearer CgcVP8IAFSCM0jDLH4xHsA",
+    "cuckoo_timeout": 90
+}
