@@ -185,9 +185,9 @@ class SilentWorker(SilentWorkerBase):
                         chunk = file.read(4096)
                         if not chunk:
                             break
-                        print(chunk)
+                        # print(chunk)
                         if '"score": ' in chunk:
-                            score = int(chunk.split('"score": ')[1].split(',')[0]) * 10
+                            score = float(chunk.split('"score": ')[1].split(',')[0]) * 10
 
                     #! After finish, clean up and return data in appropriate format
                     result[ohash] = [report_folder, report_filepath, str(score)]

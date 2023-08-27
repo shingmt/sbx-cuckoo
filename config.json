@@ -7,7 +7,7 @@
     "module_input_format": "filepath",
     "module_output_format": ["folderpath","filepath", "datastring"],
     "publishing": {
-        "publish_file": true,
+        "publish_file": false,
         "chunk_size": 24570,
         "after_publish": "delete"
     },

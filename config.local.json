@@ -8,13 +8,13 @@
     "module_input_format": "filepath",
     "module_output_format": ["folderpath","filepath"],
     "publishing": {
-        "publish_file": true,
+        "publish_file": false,
         "chunk_size": 24570,
         "after_publish": "delete"
     },
 
     "cuckoo_API": "http://172.17.0.1:1337",
-    "cuckoo_SECRET_KEY": "Bearer CgcVP8IAFSCM0jDLH4xHsA",
+    "cuckoo_SECRET_KEY": "Bearer 4Idmy9KK0XgDQ479ECYGNg",
     "cuckoo_timeout": 90,
-    "cuckoo_reports_dir": "/home/mta-smad/.cuckoo/storage/analyses/"
+    "cuckoo_reports_dir": "/home/alex/.cuckoo/storage/analyses/"
 }
