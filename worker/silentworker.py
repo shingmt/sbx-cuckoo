@@ -22,6 +22,7 @@ import time
 from main.sandbox import Sandbox_API
 import shutil
 import glob
+import subprocess
 
 
 class SilentWorker(SilentWorkerBase):
@@ -114,6 +115,9 @@ class SilentWorker(SilentWorkerBase):
         """ Submit to cuckoo """
         map_ohash_taskid = {}
         for ohash,filepath in self._map_ohash_inputs.items():
+            if not os.path.isfile(filepath):
+                log(f'[!][SilentWorker][infer] File not exists: {filepath}')
+                continue
             task_id = self.sandbox.start_analysis(filepath)
             if task_id is None: #? something went wrong
                 return
@@ -137,63 +141,81 @@ class SilentWorker(SilentWorkerBase):
         """
         # log(f'[check_tasks_status] module_code: {self.module_code}')
 
-        #? get all files that store tasks ids
-        tasks_filepaths = sorted(glob.glob('.*.task_ids.tmp'))
+        try:
+            #? get all files that store tasks ids
+            tasks_filepaths = sorted(glob.glob('.*.task_ids.tmp'))
 
-        cuckoo_reports_dir = self._config['cuckoo_reports_dir'] if 'cuckoo_reports_dir' in self._config else '/home/'
+            cuckoo_reports_dir = self._config['cuckoo_reports_dir'] if 'cuckoo_reports_dir' in self._config else '/home/'
+            cuckoo_filesrv = self._config['cuckoo_filesrv'] if 'cuckoo_filesrv' in self._config else ""
 
-        for tasks_filepath in tasks_filepaths:
-            print(f'[ ][check_tasks_status] tasks_filepath', tasks_filepath)
-            result = {} #? required.  {}
-            note = {} #? optional.  {} | ''
+            for tasks_filepath in tasks_filepaths:
+                print(f'[ ][check_tasks_status] tasks_filepath', tasks_filepath)
+                result = {} #? required.  {}
+                note = {} #? optional.  {} | ''
 
-            map_ohash_taskid = json.load(open(tasks_filepath))
+                map_ohash_taskid = json.load(open(tasks_filepath))
 
-            for ohash,task_id in map_ohash_taskid.items():
-                task_id = str(task_id)
-                while True: #? check until status return `reported`
-                    #? check status of this task
-                    status, errors = self.sandbox.get_task_status(task_id)
-                    # if status is not None: #? done
-                    #     report = self.sandbox.get_report(task_id)
-                    print(f'   [>] task_id = {task_id} | status = {status}')
+                for ohash,task_id in map_ohash_taskid.items():
+                    task_id = str(task_id)
+                    while True: #? check until status return `reported`
+                        #? check status of this task
+                        status, errors = self.sandbox.get_task_status(task_id)
+                        # if status is not None: #? done
+                        #     report = self.sandbox.get_report(task_id)
+                        print(f'   [>] task_id = {task_id} | status = {status}')
 
-                    if status is not None:
-                        if status == 'reported': #? finished analysing
-                            print(f'      [+] Reported')
-                            break
-                        if status == 'error': #? error
-                            print(f'      [!] Error')
-                            break
-                    print(f'      [-] Not finished. Rest before checking')
-                    time.sleep(10) #? else, rest a bit
+                        if status is not None:
+                            if status == 'reported': #? finished analysing
+                                print(f'      [+] Reported')
+                                break
+                            if status == 'error': #? error
+                                print(f'      [!] Error')
+                                break
+                        print(f'      [-] Not finished. Rest before checking')
+                        time.sleep(10) #? else, rest a bit
 
-                #? get report folder & json report file and call __onFinishInfer__
-                if status == 'reported': #? only if `status` = reported, else maybe error or no report generated
-                    report_folder = os.path.join(self.module_outdir, task_id)
-                    report_filepath = os.path.join(self.module_outdir, task_id, 'reports', 'report.json')
-                    cuckoo_outdir = os.path.join(cuckoo_reports_dir, task_id)
-                    log(f'[+] Task reported. Moving from cuckoo output folder to module outdir. {cuckoo_outdir} -> {report_folder}')
-                    if os.path.isdir(cuckoo_outdir):
-                        shutil.move(cuckoo_outdir, self.module_outdir)
+                    #? get report folder & json report file and call __onFinishInfer__
+                    if status == 'reported': #? only if `status` = reported, else maybe error or no report generated
+                        #? process downloaded file
+                        report_folder = os.path.join(self.module_outdir, task_id)
+                        report_filepath = os.path.join(self.module_outdir, task_id, 'reports', 'report.json')
+                        if not os.path.isdir(os.path.dirname(report_filepath)):
+                            os.makedirs(os.path.dirname(report_filepath))
 
-                    #? get cuckoo score. cuckoo report might be extremely huge => read only first several lines
-                    score = 0
-                    file = open(report_filepath, 'r')
-                    # while True: #? to read all
-                    if True: #? to read the first chunk only
-                        chunk = file.read(4096)
-                        if not chunk:
-                            break
-                        # print(chunk)
-                        if '"score": ' in chunk:
-                            score = float(chunk.split('"score": ')[1].split(',')[0]) * 10
+                        #? download report file from hosted cuckoo folder
+                        if len(cuckoo_filesrv) > 0 and (cuckoo_filesrv[:7] == 'http://' or cuckoo_filesrv[:8] == 'https://'):
+                            print('[ ] Downloading report file')
+                            # subprocess.run(['curl', '-X', 'GET', f'{cuckoo_filesrv}/{task_id}/reports/report.json', '>', report_filepath])
+                            os.system(f'curl -X GET {cuckoo_filesrv}/{task_id}/reports/report.json > {report_filepath}')
+                        else:
+                            cuckoo_outdir = os.path.join(cuckoo_reports_dir, task_id)
+                            log(f'[+] Task reported. Moving from cuckoo output folder to module outdir. {cuckoo_outdir} -> {report_folder}')
+                            if os.path.isdir(cuckoo_outdir):
+                                shutil.move(cuckoo_outdir, self.module_outdir)
 
-                    #! After finish, clean up and return data in appropriate format
-                    result[ohash] = [report_folder, report_filepath, str(score)]
+                        if not os.path.isfile(report_filepath):
+                            log(f'[!] report_filepath {report_filepath} not found')
 
-            #! Call __onFinishInfer__ when the analysis is done. This can be called from anywhere in your code. In case you need synchronous processing
-            self.__onFinishInfer__(result, note)
+                        #? get cuckoo score. cuckoo report might be extremely huge => read only first several lines
+                        score = 0
+                        file = open(report_filepath, 'r')
+                        # while True: #? to read all
+                        if True: #? to read the first chunk only
+                            chunk = file.read(4096)
+                            if not chunk:
+                                break
+                            # print(chunk)
+                            if '"score": ' in chunk:
+                                score = float(chunk.split('"score": ')[1].split(',')[0]) * 10
 
-            #? remove the task_ids file
-            os.remove(tasks_filepath)
+                        #! After finish, clean up and return data in appropriate format
+                        result[ohash] = [report_folder, report_filepath, str(score)]
+
+                #! Call __onFinishInfer__ when the analysis is done. This can be called from anywhere in your code. In case you need synchronous processing
+                self.__onFinishInfer__(result, note)
+
+                #? remove the task_ids file
+                # os.remove(tasks_filepath)
+                os.rename(tasks_filepath, tasks_filepath+'.done')
+        except Exception as e:
+            log(f'[!][SilentWorker][infer] Failed with exception: {e}')

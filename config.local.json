@@ -3,18 +3,19 @@
     "module_code": "sbx-cuckoo",
     "module_type": "sandbox",
     "module_otype": "file",
-    "module_indir": "/home/mta-smad/smad-3/data/modules/sbx-cuckoo/input",
-    "module_outdir": "/home/mta-smad/smad-3/data/modules/sbx-cuckoo/output",
+    "module_indir": "/var/csp/data/modules/sbx-cuckoo/input",
+    "module_outdir": "/var/csp/data/modules/sbx-cuckoo/output",
     "module_input_format": "filepath",
     "module_output_format": ["folderpath","filepath"],
     "publishing": {
         "publish_file": false,
         "chunk_size": 24570,
-        "after_publish": "delete"
+        "after_publish": "keep"
     },
 
-    "cuckoo_API": "http://172.17.0.1:1337",
-    "cuckoo_SECRET_KEY": "Bearer 4Idmy9KK0XgDQ479ECYGNg",
+    "cuckoo_API": "http://192.168.1.28:1337",
+    "cuckoo_SECRET_KEY": "Bearer kAtvoZEZgg7RrI-ISmlG_Q",
     "cuckoo_timeout": 90,
-    "cuckoo_reports_dir": "/home/alex/.cuckoo/storage/analyses/"
+    "cuckoo_reports_dir": "/home/user1/.cuckoo/storage/analyses/",
+    "cuckoo_filesrv": "http://192.168.1.28:6636"
 }
