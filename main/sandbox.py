@@ -49,8 +49,10 @@ class Sandbox_API(object):
 
         task = response['task']
 
-        if 'errors' in task and len(task['errors']) > 0:
-            return 'error', task['errors']
+        if 'errors' in task:
+            errors = list(filter(None, task['errors']))
+            if len(errors) > 0:
+                return 'error', errors
 
         return task['status'], task
 
